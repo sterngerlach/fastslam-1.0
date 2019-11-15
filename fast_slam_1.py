@@ -346,8 +346,8 @@ def generate_simulated_twist_and_observation():
     
     ground_truth.append(pose)
     
-    for i in range(50):
-        dt = max(1.0 + np.random.normal(scale=0.05), 0.9)
+    for i in range(256):
+        dt = max(0.2 + np.random.normal(scale=0.05), 0.15)
         deltas.append(dt)
         
         # ロボットの真の位置を追加
@@ -393,6 +393,14 @@ def main():
                  for x in range(NUM_OF_PARTICLES)]
     weights = []
     
+    # オドメトリのみを用いた軌跡
+    odom_pose = ground_truth[0]
+    odom_trajectory = [odom_pose]
+    
+    for i in range(len(twists)):
+        odom_pose = update_robot_pose_2d(odom_pose, twists[i], deltas[i])
+        odom_trajectory.append(odom_pose)
+    
     # FastSLAM 1.0アルゴリズムを実行
     for i in range(len(twists)):
         print("Iteration: {0}".format(i))
@@ -410,6 +418,12 @@ def main():
     ground_truth_ys = [pose.y for pose in ground_truth]
     plt.plot(ground_truth_xs, ground_truth_ys,
              linewidth=3, c="blue", label="Ground truth")
+    
+    # オドメトリのみを用いた場合の軌跡
+    odom_trajectory_xs = [t.x for t in odom_trajectory]
+    odom_trajectory_ys = [t.y for t in odom_trajectory]
+    plt.plot(odom_trajectory_xs, odom_trajectory_ys,
+             linewidth=3, c="black", label="Odometry only")
     
     # 最良のパーティクルの軌跡
     best_particle_idx = np.argmax(weights)
