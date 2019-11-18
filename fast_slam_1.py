@@ -281,7 +281,7 @@ def is_close_enough(pose, feature):
     dist_sq = np.power(mx - x, 2.0) + np.power(my - y, 2.0)
     dist = np.sqrt(dist_sq)
     
-    return dist < 3.0
+    return dist < 5.0
 
 # ロボットの観測にガウス雑音を加算
 def add_gaussian_noise(z_t):
@@ -296,7 +296,7 @@ def add_gaussian_noise(z_t):
     return Observation2D(r=r_hat, phi=phi_hat)
 
 # 特徴の真の座標を生成
-def generate_simulated_features():
+def generate_simulated_features_old():
     features = []
     
     # 内側の壁
@@ -330,6 +330,32 @@ def generate_simulated_features():
     
     return features
 
+# 特徴の真の座標を生成
+def generate_simulated_features():
+    features = []
+
+    for i in range(20):
+        r = 3.0 + np.random.normal(scale=0.3)
+        phi = 2.0 * np.pi * i / 20 + np.random.normal(scale=0.1)
+
+        feature_x = 0.0 + r * np.cos(phi)
+        feature_y = 5.0 + r * np.sin(phi)
+
+        features.append([feature_x, feature_y])
+    
+    for i in range(20):
+        r = 6.0 + np.random.normal(scale=0.3)
+        phi = 2.0 * np.pi * i / 20 + np.random.normal(scale=0.1)
+        
+        feature_x = 0.0 + r * np.cos(phi)
+        feature_y = 5.0 + r * np.sin(phi)
+
+        features.append([feature_x, feature_y])
+    
+    features = [Feature2D(x=f[0], y=f[1]) for f in features]
+
+    return features
+
 # ロボットの動作と計測を生成
 def generate_simulated_twist_and_observation():
     # 特徴の真の座標を生成
@@ -355,7 +381,7 @@ def generate_simulated_twist_and_observation():
         ground_truth.append(pose)
         
         # ロボットの動作に適当なノイズを加算して追加
-        v_hat = twist.linear + np.random.normal(scale=0.2)
+        v_hat = twist.linear + np.random.normal(scale=0.1)
         omega_hat = twist.angular + np.random.normal(scale=0.05)
         twist_hat = Twist2D(linear=v_hat, angular=omega_hat)
         twists.append(twist_hat)
@@ -369,17 +395,7 @@ def generate_simulated_twist_and_observation():
             lambda f: (f[0], estimate_observation_2d(pose, f[1])),
             possible_features))
         
-        # ロボットが観測した特徴の数
-        num_of_actual_observations = np.random.randint(
-            low=1, high=len(possible_observations) + 1)
-        # ロボットが観測した特徴をランダムにサンプル
-        actual_observations = random.sample(
-            possible_observations, num_of_actual_observations)
-        # 特徴に適当なガウス雑音を加算
-        actual_observations = list(map(
-            lambda o: (o[0], add_gaussian_noise(o[1])),
-            actual_observations))
-        observations.append(actual_observations)
+        observations.append(possible_observations)
         
     return ground_truth, twists, observations, deltas, features
 
@@ -389,10 +405,17 @@ def main():
         generate_simulated_twist_and_observation()
     
     # パーティクルを初期化
-    particles = [Particle(trajectory=[ground_truth[0]], particle_map={})
-                 for x in range(NUM_OF_PARTICLES)]
-    weights = []
+    particles = []
+
+    for i in range(NUM_OF_PARTICLES):
+        init_x = ground_truth[0].x + np.random.normal(scale=0.02)
+        init_y = ground_truth[0].y + np.random.normal(scale=0.02)
+        init_theta = ground_truth[0].theta + np.random.normal(scale=0.02)
+        init_pose = RobotPose2D(x=init_x, y=init_y, theta=init_theta)
+        particles.append(Particle(trajectory=[init_pose], particle_map={}))
     
+    weights = []
+
     # オドメトリのみを用いた軌跡
     odom_pose = ground_truth[0]
     odom_trajectory = [odom_pose]
