@@ -217,8 +217,8 @@ def fastslam_1_known_correspondence(prev_particles, u_t, z_t, dt):
                 # 特徴の共分散を初期化
                 sigma = np.linalg.pinv(H) @ Q_t @ np.linalg.pinv(H).T
                 # 重みを初期化
-                # w *= 1.0 / NUM_OF_PARTICLES
-                w *= 1.0
+                w *= 1.0 / NUM_OF_PARTICLES
+                # w *= 1.0
                 # 特徴の平均と共分散を更新
                 particle_map[j] = FeatureParams2D(mu=mu, sigma=sigma)
             else:
@@ -243,9 +243,9 @@ def fastslam_1_known_correspondence(prev_particles, u_t, z_t, dt):
                 # 特徴の共分散を計算
                 sigma = sigma - sigma @ K @ H
                 # 重みを計算
-                # w *= np.power(np.linalg.det(Q), 0.5) * \
-                #      np.exp(-0.5 * (d.T @ np.linalg.pinv(Q) @ d))
-                w *= np.exp(-0.01 * (d.T @ np.linalg.pinv(Q) @ d))
+                w *= np.power(np.linalg.det(Q), 0.5) * \
+                     np.exp(-0.5 * (d.T @ np.linalg.pinv(Q) @ d))
+                # w *= np.exp(-0.01 * (d.T @ np.linalg.pinv(Q) @ d))
                 # 特徴の平均と共分散を更新
                 particle_map[j] = FeatureParams2D(mu=mu, sigma=sigma)
         
@@ -355,8 +355,8 @@ def generate_simulated_twist_and_observation():
         ground_truth.append(pose)
         
         # ロボットの動作に適当なノイズを加算して追加
-        v_hat = twist.linear + np.random.normal(scale=0.05)
-        omega_hat = twist.angular + np.random.normal(scale=0.01)
+        v_hat = twist.linear + np.random.normal(scale=0.2)
+        omega_hat = twist.angular + np.random.normal(scale=0.05)
         twist_hat = Twist2D(linear=v_hat, angular=omega_hat)
         twists.append(twist_hat)
         
